@@ -2,7 +2,7 @@ import customtkinter as ctk
 from tkinter import ttk
 import asyncpg
 import asyncio
-
+import threading
 # Configuração da janela principal
 
 ctk.set_appearance_mode("dark")
@@ -11,6 +11,15 @@ root = ctk.CTk()
 root.title("WareSearch")
 root.iconbitmap(r"Ware.click.ico")
 root.geometry("1000x500")
+
+loop = asyncio.new_event_loop()
+def iniciar_loop_asyncio():
+    """Inicia o loop asyncio em uma thread separada"""
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+thread_asyncio = threading.Thread(target=iniciar_loop_asyncio, daemon=True)
+thread_asyncio.start()
 
 # Variáveis globais para armazenar todas as integrações carregadas
 todas_integracoes = []
@@ -58,6 +67,10 @@ def selecionar_cliente(event):
         for integracao in integracoes_cliente:
             tree_integracoes.insert("", "end", values=(integracao,))
 
+def atualizar_dados():
+    """Chama a atualização assíncrona de forma segura"""
+    loop.call_soon_threadsafe(lambda: asyncio.create_task(carregar_dados()))
+
 # Criando a interface
 frame_principal = ctk.CTkFrame(root)
 frame_principal.pack(fill="both", expand=True, padx=10, pady=5)
@@ -79,6 +92,11 @@ tree_clientes.configure(yscrollcommand=scroll_clientes.set)
 
 scroll_clientes.pack(side="right", fill="y")
 tree_clientes.pack(fill="both", expand=True)
+
+#botao de refresh
+btn_atualizar = ctk.CTkButton(root, text="🔄 Atualizar", command=atualizar_dados,
+fg_color='#B22222', text_color='white', font=('Arial', 15, 'bold'))
+btn_atualizar.pack(pady=10)
 
 # Frame direito (Integrações do cliente selecionado)
 frame_integracoes = ctk.CTkFrame(frame_principal)
